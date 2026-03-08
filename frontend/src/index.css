@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Base Styles */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f9fafb; /* Light gray background for a modern look */
+  color: #111827; /* Darker text for better readability */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
