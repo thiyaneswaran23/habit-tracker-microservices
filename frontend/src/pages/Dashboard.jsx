@@ -1,124 +1,195 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CheckCircle2, Flame, BarChart3, Settings, LogOut, LayoutDashboard } from 'lucide-react';
+import { 
+  Plus, CheckCircle2, Flame, BarChart3, Settings, 
+  LogOut, LayoutDashboard, Loader2, Trophy, Clock, X 
+} from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [habits, setHabits] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [newHabit, setNewHabit] = useState({ name: '', category: 'General' });
+  
+  // Updated state to include all fields requested by the Java Entity
+  const [newHabit, setNewHabit] = useState({ 
+    name: '', 
+    category: 'Coding', 
+    reminderTime: '08:00' 
+  });
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user?.id) fetchDashboardData();
+  }, [user]);
 
-  const fetchData = async () => {
+  const fetchDashboardData = async () => {
     try {
-      // 1. Fetch Habits from Habit-Service (8082)
-      const habitsRes = await api.get(`/habits/user/${user.id}`);
-      
-      // 2. Fetch Analytics from Analytics-Service (8084)
-      const statsRes = await api.get(`/analytics/user/${user.id}/performance`);
-      
-      setHabits(habitsRes.data);
-      setAnalytics(statsRes.data);
+      setLoading(true);
+      const res = await api.get(`/habits/user/${user.id}`);
+      setHabits(res.data);
     } catch (err) {
-      console.error("Error fetching dashboard data", err);
+      console.error("Dashboard fetch error");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLogHabit = async (habitId) => {
+  const handleToggleComplete = async (habitId) => {
     try {
-      // Log completion to Tracking-Service (8083)
+      // 1. Optimistic Update: Move it to completed in the UI instantly
+      setHabits(prev => prev.map(h => 
+        h.id === habitId ? { ...h, completedToday: true } : h
+      ));
+
+      // 2. Persist to Tracking-Service (Port 8083)
       await api.post('/tracking/log', { habitId, userId: user.id });
-      fetchData(); // Refresh streaks and stats
     } catch (err) {
-      alert("Already logged for today!");
+      // Rollback if the backend fails (e.g., already logged)
+      fetchDashboardData();
+      alert("This ritual is already locked in for today!");
     }
   };
 
-  const createHabit = async () => {
+  const createHabit = async (e) => {
+    e.preventDefault();
     try {
+      // POSTing all fields to Habit-Service via Gateway
       await api.post('/habits/create', { ...newHabit, userId: user.id });
       setShowModal(false);
-      fetchData();
+      fetchDashboardData();
     } catch (err) {
       console.error("Creation failed");
     }
   };
 
+  // Logic for the two dashboard sections
+  const pendingHabits = habits.filter(h => !h.completedToday);
+  const completedHabits = habits.filter(h => h.completedToday);
+
+  if (!user) return null;
+
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f8fafc] font-sans selection:bg-indigo-100">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 p-6 flex flex-col">
-        <div className="flex items-center gap-3 mb-10">
-          <div className="bg-indigo-600 p-2 rounded-lg text-white"><Flame size={20}/></div>
-          <span className="text-xl font-bold text-slate-800">HabitFlow</span>
+      <aside className="w-72 bg-white border-r border-slate-200/60 p-8 flex flex-col sticky top-0 h-screen">
+        <div className="flex items-center gap-4 mb-12 group cursor-pointer">
+          <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-2.5 rounded-2xl shadow-xl shadow-indigo-200 rotate-3 transition-transform">
+            <Trophy className="text-white" size={24} />
+          </div>
+          <span className="text-2xl font-black text-slate-900 tracking-tighter">HabitFlow</span>
         </div>
         
         <nav className="flex-1 space-y-2">
-          <SidebarItem icon={<LayoutDashboard size={20}/>} label="Dashboard" active />
-          <SidebarItem icon={<BarChart3 size={20}/>} label="Analytics" />
-          <SidebarItem icon={<Settings size={20}/>} label="Settings" />
+          <SidebarLink icon={<LayoutDashboard size={20}/>} label="Dashboard" active />
+          <SidebarLink icon={<BarChart3 size={20}/>} label="Progress" />
         </nav>
 
-        <button onClick={logout} className="flex items-center gap-3 text-slate-500 hover:text-red-600 transition-colors p-3">
-          <LogOut size={20}/> <span className="font-medium">Logout</span>
+        <div className="bg-slate-50 rounded-3xl p-6 mb-8 border border-slate-100">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Identity</p>
+          <p className="text-sm font-black text-slate-800 truncate">{user.username}</p>
+          <p className="text-[10px] text-indigo-600 font-bold">RMK CSE '26</p>
+        </div>
+
+        <button onClick={logout} className="flex items-center gap-3 text-slate-400 hover:text-red-500 transition-all p-3 font-bold text-sm">
+          <LogOut size={18}/> Logout
         </button>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8">
-        <header className="flex justify-between items-center mb-8">
+      <main className="flex-1 p-12 max-w-7xl mx-auto w-full">
+        <header className="flex justify-between items-end mb-12">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Welcome, {user?.username}!</h1>
-            <p className="text-slate-500">You have {habits.length} active habits.</p>
+            <h1 className="text-4xl font-black text-slate-900 mb-2">My Daily Rituals</h1>
+            <p className="text-slate-500 font-medium italic">High Performer Track</p>
           </div>
           <button 
             onClick={() => setShowModal(true)}
-            className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+            className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-indigo-600 transition-all shadow-2xl shadow-slate-200 active:scale-95"
           >
-            <Plus size={20}/> New Habit
+            <Plus size={22} strokeWidth={3}/> New Habit
           </button>
         </header>
 
-        {/* Habits Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {habits.map((habit) => (
-            <HabitCard 
-              key={habit.id} 
-              habit={habit} 
-              onComplete={() => handleLogHabit(habit.id)} 
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 space-y-4">
+            <Loader2 className="animate-spin text-indigo-600" size={48} />
+          </div>
+        ) : (
+          <div className="space-y-16">
+            {/* PENDING SECTION */}
+            <section>
+              <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+                <span className="w-8 h-[2px] bg-slate-200"></span> Still To Do
+              </h2>
+              <div className="grid lg:grid-cols-2 gap-8">
+                {pendingHabits.map(habit => (
+                  <HabitCard key={habit.id} habit={habit} onTick={() => handleToggleComplete(habit.id)} />
+                ))}
+              </div>
+            </section>
+
+            {/* COMPLETED SECTION */}
+            <section className="opacity-75">
+              <h2 className="text-xs font-black text-emerald-500 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+                <span className="w-8 h-[2px] bg-emerald-100"></span> Victory Lap
+              </h2>
+              <div className="grid lg:grid-cols-2 gap-8">
+                {completedHabits.map(habit => (
+                  <HabitCard key={habit.id} habit={habit} completed />
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
       </main>
 
-      {/* Create Habit Modal */}
+      {/* GOD LEVEL MODAL: Asking for all Entity fields */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <h2 className="text-2xl font-bold mb-6">Create New Habit</h2>
-            <input 
-              className="w-full p-4 bg-slate-50 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Habit Name (e.g. Morning Run)"
-              onChange={(e) => setNewHabit({...newHabit, name: e.target.value})}
-            />
-            <select 
-              className="w-full p-4 bg-slate-50 border rounded-xl mb-6 outline-none"
-              onChange={(e) => setNewHabit({...newHabit, category: e.target.value})}
-            >
-              <option>General</option>
-              <option>Fitness</option>
-              <option>Coding</option>
-              <option>Reading</option>
-            </select>
-            <div className="flex gap-4">
-              <button onClick={() => setShowModal(false)} className="flex-1 py-3 font-bold text-slate-500">Cancel</button>
-              <button onClick={createHabit} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold">Create</button>
-            </div>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-6 z-50">
+          <div className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl border border-slate-100 animate-in zoom-in duration-200 relative">
+            <button onClick={() => setShowModal(false)} className="absolute top-8 right-8 text-slate-300 hover:text-slate-600">
+              <X size={24} />
+            </button>
+            <h2 className="text-3xl font-black text-slate-900 mb-2">New Ritual</h2>
+            <p className="text-slate-500 text-sm mb-8 font-medium">Capture the details for your daily growth.</p>
+            
+            <form onSubmit={createHabit} className="space-y-5">
+              <div>
+                <label className="text-xs font-black text-slate-400 uppercase ml-2 mb-2 block">Habit Name</label>
+                <input 
+                  required className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 focus:ring-indigo-100 transition-all font-bold"
+                  placeholder="e.g. Java Logic"
+                  onChange={(e) => setNewHabit({...newHabit, name: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-slate-400 uppercase ml-2 mb-2 block">Category</label>
+                <select 
+                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 focus:ring-indigo-100 transition-all font-bold appearance-none"
+                  onChange={(e) => setNewHabit({...newHabit, category: e.target.value})}
+                >
+                  <option value="Coding">Coding</option>
+                  <option value="Fitness">Fitness</option>
+                  <option value="Reading">Reading</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-slate-400 uppercase ml-2 mb-2 block">Reminder Time</label>
+                <input 
+                  type="time" required
+                  className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 focus:ring-indigo-100 transition-all font-bold"
+                  onChange={(e) => setNewHabit({...newHabit, reminderTime: e.target.value})}
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 font-black text-slate-400 hover:text-slate-600 transition-colors">Discard</button>
+                <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 transition-all">Create</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -126,29 +197,31 @@ const Dashboard = () => {
   );
 };
 
-const SidebarItem = ({ icon, label, active }) => (
-  <div className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${active ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-    {icon} <span className="font-semibold">{label}</span>
+const SidebarLink = ({ icon, label, active }) => (
+  <div className={`flex items-center gap-4 px-5 py-4 rounded-2xl cursor-pointer transition-all ${active ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'}`}>
+    {icon} <span className="font-bold text-sm">{label}</span>
   </div>
 );
 
-const HabitCard = ({ habit, onComplete }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all">
-    <div className="flex justify-between items-start mb-4">
-      <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full uppercase tracking-wider">
-        {habit.category}
-      </span>
-      <div className="flex items-center text-orange-500 gap-1 font-bold">
-        <Flame size={18} fill="currentColor"/> {habit.currentStreak || 0}
+const HabitCard = ({ habit, onTick, completed }) => (
+  <div className={`bg-white p-8 rounded-[2rem] border transition-all flex items-center justify-between ${completed ? 'border-emerald-100 bg-emerald-50/10' : 'border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1'}`}>
+    <div className="flex items-center gap-6">
+      <div className={`w-16 h-16 rounded-[1.25rem] flex items-center justify-center ${completed ? 'bg-emerald-500' : 'bg-indigo-50'}`}>
+        {completed ? <CheckCircle2 className="text-white" size={32} /> : <Clock className="text-indigo-600" size={32} />}
+      </div>
+      <div>
+        <p className={`text-xl font-black tracking-tight ${completed ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{habit.name}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <Flame size={14} className={completed ? 'text-slate-300' : 'text-orange-500'} fill="currentColor"/>
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{habit.streak || 0} Day Streak</span>
+        </div>
       </div>
     </div>
-    <h3 className="text-xl font-bold text-slate-800 mb-4">{habit.name}</h3>
-    <button 
-      onClick={onComplete}
-      className="w-full py-3 bg-slate-50 text-slate-700 rounded-xl font-bold hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2 group"
-    >
-      <CheckCircle2 size={20} className="text-indigo-600 group-hover:text-white"/> Complete for Today
-    </button>
+    {!completed && (
+      <button onClick={onTick} className="bg-white border-2 border-slate-100 p-4 rounded-2xl text-slate-300 hover:border-indigo-600 hover:text-indigo-600 transition-all active:scale-90">
+        <CheckCircle2 size={24} strokeWidth={3}/>
+      </button>
+    )}
   </div>
 );
 

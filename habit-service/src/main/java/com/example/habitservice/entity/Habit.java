@@ -2,6 +2,7 @@ package com.example.habitservice.entity;
 
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 
@@ -12,10 +13,16 @@ public class Habit {
     private String id;
     private Long userId;
     private String name;
-    private String category; // e.g., "Coding", "Fitness"
-    private String reminderTime; // Format: "HH:mm" (e.g., "07:30")
+    private String category;
+    private String reminderTime;
     private boolean active = true;
 
+    @Transient // This field is calculated at runtime, not stored in DB
+    private boolean completedToday;
+
+    // Add Getter and Setter for completedToday
+    public boolean isCompletedToday() { return completedToday; }
+    public void setCompletedToday(boolean completedToday) { this.completedToday = completedToday; }
     public String getId() {
         return id;
     }

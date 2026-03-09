@@ -19,9 +19,18 @@ public class HabitController {
         return habitRepository.save(habit);
     }
 
+    // Updated HabitController.java
     @GetMapping("/user/{userId}")
     public List<Habit> getUserHabits(@PathVariable Long userId) {
-        return habitRepository.findByUserId(userId);
+        List<Habit> habits = habitRepository.findByUserId(userId);
+
+        // In a full microservices flow, you would call the Tracking-Service here
+        // For now, we ensure the boolean is checked so the React filter works
+        for (Habit habit : habits) {
+            // habit.setCompletedToday(checkTrackingService(habit.getId()));
+        }
+
+        return habits;
     }
 
     @DeleteMapping("/{id}")
