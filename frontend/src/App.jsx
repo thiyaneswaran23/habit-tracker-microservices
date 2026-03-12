@@ -4,12 +4,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import { AuthProvider, useAuth } from './context/AuthContext';
-
-// 1. Create a ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-  
-  // If no user is logged in, redirect them to the login page
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -22,12 +18,10 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* 2. Wrap Dashboard in the ProtectedRoute */}
           <Route 
             path="/dashboard" 
             element={
@@ -37,7 +31,12 @@ function App() {
             } 
           />
 
-          {/* Fallback: redirect unknown paths to landing */}
+          <Route path="/analytics" element={
+            <ProtectedRoute>
+              <Analytics />
+            </ProtectedRoute>
+          } />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

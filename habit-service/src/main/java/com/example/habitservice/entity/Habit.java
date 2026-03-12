@@ -16,8 +16,30 @@ public class Habit {
     private String category;
     private String reminderTime;
     private boolean active = true;
+    private String frequency; // "Daily", "Weekly", "Monthly"
+    private String frequencyValue;
+    @Transient
+    private int streak;
 
-    @Transient // This field is calculated at runtime, not stored in DB
+    public int getStreak() { return streak; }
+    public void setStreak(int streak) { this.streak = streak; }
+    public String getFrequencyValue() {
+        return frequencyValue;
+    }
+
+    public void setFrequencyValue(String frequencyValue) {
+        this.frequencyValue = frequencyValue;
+    }
+
+    public String getFrequency() {
+        return frequency;
+    }
+
+    public void setFrequency(String frequency) {
+        this.frequency = frequency;
+    }
+
+    @Transient
     private boolean completedToday;
 
     // Add Getter and Setter for completedToday

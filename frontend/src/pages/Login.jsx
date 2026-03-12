@@ -17,7 +17,7 @@ const Login = () => {
     setError('');
     try {
       const response = await api.post('/users/login', formData);
-      login(response.data); // Store user in Context
+      login(response.data);
       navigate('/dashboard'); 
     } catch (err) {
       setError('Invalid email or password. Please try again.');

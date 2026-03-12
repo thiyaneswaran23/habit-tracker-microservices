@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -21,43 +20,49 @@ public class TrackingController {
     private HabitLogRepository logRepository;
 
     @Autowired
-    private TrackingService streakService;
+    private TrackingService trackingService;
+    @GetMapping("/streak/{habitId}")
+    public int getStreak(
+            @PathVariable String habitId,
+            @RequestParam(defaultValue = "Daily") String frequency) {
+        return trackingService.calculateStreak(habitId, frequency);
+    }
 
-    // 1. Mark a habit as completed for TODAY using your DTO
     @PostMapping("/log")
     public ResponseEntity<?> logHabit(@RequestBody LogRequest request) {
         String habitId = request.getHabitId();
-        Long userId = request.getUserId();
         LocalDate today = LocalDate.now();
-
-        // 1. Check for existing log
         Optional<HabitLog> existingLog = logRepository.findByHabitIdAndCompletionDate(habitId, today);
 
         if (existingLog.isPresent()) {
-            // Return 400 Bad Request if already logged
-            return ResponseEntity.badRequest().body("Already logged for today!");
+            return ResponseEntity.ok(existingLog.get());
         }
 
-        // 2. Create and save new log
         HabitLog log = new HabitLog();
         log.setHabitId(habitId);
-        log.setUserId(userId);
+        log.setUserId(request.getUserId());
         log.setCompletionDate(today);
 
-        HabitLog savedLog = logRepository.save(log);
-        return ResponseEntity.ok(savedLog);
+        return ResponseEntity.ok(logRepository.save(log));
+    }
+    @GetMapping("/status/{habitId}")
+    public boolean getCompletionStatus(
+            @PathVariable String habitId,
+            @RequestParam(defaultValue = "Daily") String frequency) {
+
+        List<HabitLog> logs = logRepository.findByHabitIdOrderByCompletionDateDesc(habitId);
+        if (logs.isEmpty()) return false;
+
+        LocalDate latestLog = logs.get(0).getCompletionDate();
+        return isWithinCurrentPeriod(latestLog, frequency);
     }
 
-    // 2. Get the current streak
-    @GetMapping("/streak/{habitId}")
-    public ResponseEntity<Map<String, Integer>> getStreak(@PathVariable String habitId) {
-        int streak = streakService.calculateStreak(habitId);
-        return ResponseEntity.ok(Map.of("currentStreak", streak));
-    }
-
-    // 3. Get all logs for history view
-    @GetMapping("/user/{userId}")
-    public List<HabitLog> getUserLogs(@PathVariable Long userId) {
-        return logRepository.findByUserId(userId);
+    private boolean isWithinCurrentPeriod(LocalDate date, String frequency) {
+        LocalDate today = LocalDate.now();
+        return switch (frequency) {
+            case "Weekly" -> !date.isBefore(today.with(java.time.DayOfWeek.MONDAY));
+            case "Monthly" -> date.getMonth() == today.getMonth() && date.getYear() == today.getYear();
+            default -> date.equals(today);
+        };
     }
 }

@@ -12,7 +12,5 @@ import java.util.Optional;
 public interface HabitLogRepository extends MongoRepository<HabitLog, String> {
     List<HabitLog> findByUserId(Long userId);
     List<HabitLog> findByHabitIdOrderByCompletionDateDesc(String habitId);
-
-    // New method for the duplicate check
     Optional<HabitLog> findByHabitIdAndCompletionDate(String habitId, LocalDate date);
 }

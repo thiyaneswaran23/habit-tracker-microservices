@@ -15,11 +15,10 @@ const Register = () => {
     setError('');
     
     try {
-      // POST to User-Service via Gateway (Port 8080)
+    
       await api.post('/users/register', formData); 
       navigate('/login'); 
     } catch (err) {
-      // FIX: Extract string message from object to prevent React crash
       const serverError = err.response?.data?.message || 
                           err.response?.data?.error || 
                           (typeof err.response?.data === 'string' ? err.response.data : null);
@@ -41,7 +40,6 @@ const Register = () => {
           <p className="text-slate-500 mt-2">Start your journey to better habits</p>
         </div>
 
-        {/* Error is now guaranteed to be a string or null */}
         {error && (
           <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm border border-red-100">
             {error}

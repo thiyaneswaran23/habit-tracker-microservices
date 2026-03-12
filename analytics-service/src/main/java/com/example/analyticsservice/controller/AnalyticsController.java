@@ -14,8 +14,6 @@ public class AnalyticsController {
 
     @Autowired
     private AnalyticsService analyticsService;
-
-    // Add this to your AnalyticsController.java
     @GetMapping("/global/categories")
     public List<Map> getCategories() {
         return analyticsService.getGlobalCategoryStats();

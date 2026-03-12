@@ -11,8 +11,8 @@ import java.time.LocalDate;
 public class HabitLog {
     @Id
     private String id;
-    private String habitId; // Links to Habit-Service
-    private Long userId;    // Links to User-Service
+    private String habitId;
+    private Long userId;
     private LocalDate completionDate;
     private boolean completed = true;
 
