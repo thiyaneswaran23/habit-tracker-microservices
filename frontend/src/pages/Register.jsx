@@ -67,7 +67,7 @@ const Register = () => {
               <input 
                 type="email" required
                 className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                placeholder="vibish@rmk.ac.in"
+             
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
               />
             </div>
@@ -80,7 +80,7 @@ const Register = () => {
               <input 
                 type="password" required
                 className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                placeholder="••••••••"
+               
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
               />
             </div>

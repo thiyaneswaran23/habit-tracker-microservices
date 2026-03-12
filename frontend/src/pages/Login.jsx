@@ -47,7 +47,7 @@ const Login = () => {
               <input 
                 type="email" required
                 className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
-                placeholder="name@example.com"
+                
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
               />
             </div>
@@ -60,7 +60,7 @@ const Login = () => {
               <input 
                 type="password" required
                 className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
-                placeholder="••••••••"
+              
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
               />
             </div>
